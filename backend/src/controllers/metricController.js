@@ -3,27 +3,22 @@ const Metric = require('../models/Metric');
 const Server = require('../models/Server');
 const Alert = require('../models/Alert');
 
-// Registrar nuevas métricas
 exports.recordMetric = async (req, res) => {
   try {
     const { serverId, cpu, ram, disk, uptime } = req.body;
 
-    // Verificar que el servidor existe
     const server = await Server.findById(serverId);
     if (!server) {
       return res.status(404).json({ message: 'Servidor no encontrado' });
     }
 
-    // Crear nueva métrica
     const metric = new Metric({ serverId, cpu, ram, disk, uptime });
     await metric.save();
 
-    // Actualizar estado del servidor
     const previousStatus = server.status;
     let newStatus = 'ok';
     const alerts = [];
 
-    // Verificar CPU
     if (cpu > server.thresholds.cpu) {
       const severity = cpu > server.thresholds.cpu * 1.2 ? 'critical' : 'warning';
       newStatus = severity === 'critical' ? 'critical' : (newStatus === 'ok' ? 'warning' : newStatus);
@@ -41,7 +36,6 @@ exports.recordMetric = async (req, res) => {
       alerts.push(alert);
     }
 
-    // Verificar RAM
     const ramUsage = (ram.used / ram.total) * 100;
     if (ramUsage > server.thresholds.ram) {
       const severity = ramUsage > server.thresholds.ram * 1.2 ? 'critical' : 'warning';
@@ -60,7 +54,6 @@ exports.recordMetric = async (req, res) => {
       alerts.push(alert);
     }
 
-    // Verificar Disco
     const diskUsage = (disk.used / disk.total) * 100;
     if (diskUsage > server.thresholds.disk) {
       const severity = diskUsage > server.thresholds.disk * 1.2 ? 'critical' : 'warning';
@@ -79,7 +72,6 @@ exports.recordMetric = async (req, res) => {
       alerts.push(alert);
     }
 
-    // Alerta de cambio de estado
     if (previousStatus !== newStatus && previousStatus !== 'inactive') {
       const alert = new Alert({
         serverId,
@@ -93,7 +85,6 @@ exports.recordMetric = async (req, res) => {
       alerts.push(alert);
     }
 
-    // Actualizar servidor
     server.status = newStatus;
     server.lastUpdate = new Date();
     await server.save();
@@ -109,7 +100,6 @@ exports.recordMetric = async (req, res) => {
   }
 };
 
-// Obtener métricas por servidor
 exports.getServerMetrics = async (req, res) => {
   try {
     const { serverId } = req.params;
@@ -169,7 +159,6 @@ exports.getServerMetrics = async (req, res) => {
   }
 };
 
-// Obtener la métrica más reciente
 exports.getLatestMetric = async (req, res) => {
   try {
     const { serverId } = req.params;
@@ -196,7 +185,6 @@ exports.getLatestMetric = async (req, res) => {
   }
 };
 
-// Eliminar métricas antiguas
 exports.cleanupMetrics = async (req, res) => {
   try {
     const { days = 30 } = req.body;
@@ -217,10 +205,9 @@ exports.cleanupMetrics = async (req, res) => {
   }
 };
 
-// Obtener promedios de todas las métricas de servidores activos
 exports.getAverages = async (req, res) => {
   try {
-    // Traer servidores activos
+
     const activeServers = await Server.find({ status: { $ne: 'inactive' } }).select('_id');
 
     if (activeServers.length === 0) {
@@ -229,7 +216,6 @@ exports.getAverages = async (req, res) => {
 
     const activeServerIds = activeServers.map(server => server._id);
 
-    // Calcular promedios sobre métricas de servidores activos
     const averages = await Metric.aggregate([
       {
         $match: {

@@ -15,7 +15,6 @@ const metricSchema = new mongoose.Schema({
   uptime: { type: Number }
 });
 
-// Índice para consultas rápidas por servidor y fecha
 metricSchema.index({ serverId: 1, timestamp: -1 });
 
 module.exports = mongoose.model('Metric', metricSchema);

@@ -1,18 +1,15 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
-// Registro de usuario
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
     
-    // Verificar si el usuario ya existe
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'El email ya está registrado' });
     }
-    
-    // Crear nuevo usuario
+
     const user = new User({
       name,
       email,
@@ -21,7 +18,6 @@ exports.register = async (req, res) => {
     
     await user.save();
     
-    // Generar token
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
@@ -43,24 +39,20 @@ exports.register = async (req, res) => {
   }
 };
 
-// Inicio de sesión
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    // Buscar usuario
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
-    
-    // Verificar contraseña
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
     
-    // Generar token
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
@@ -82,7 +74,6 @@ exports.login = async (req, res) => {
   }
 };
 
-// Obtener perfil del usuario
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -96,7 +87,6 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// Actualizar preferencias
 exports.updatePreferences = async (req, res) => {
   try {
     const { theme, updateInterval } = req.body;
@@ -105,8 +95,7 @@ exports.updatePreferences = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
-    
-    // Actualizar preferencias
+
     if (theme) user.preferences.theme = theme;
     if (updateInterval) user.preferences.updateInterval = updateInterval;
     

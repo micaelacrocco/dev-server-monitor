@@ -3,12 +3,10 @@ const Metric = require('../models/Metric');
 const Alert = require('../models/Alert');
 const crypto = require('crypto');
 
-// Crear un nuevo servidor
 exports.createServer = async (req, res) => {
   try {
     const { name, ip, os, thresholds } = req.body;
     
-    // Generar API key única
     const apiKey = crypto.randomBytes(32).toString('hex');
     
     const server = new Server({
@@ -40,7 +38,6 @@ exports.createServer = async (req, res) => {
   }
 };
 
-// Obtener todos los servidores
 exports.getAllServers = async (req, res) => {
   try {
     const { status, isActive } = req.query;
@@ -61,7 +58,6 @@ exports.getAllServers = async (req, res) => {
   }
 };
 
-// Obtener un servidor por ID
 exports.getServerById = async (req, res) => {
   try {
     const server = await Server.findById(req.params.id).select('-apiKey');
@@ -69,13 +65,11 @@ exports.getServerById = async (req, res) => {
     if (!server) {
       return res.status(404).json({ message: 'Servidor no encontrado' });
     }
-    
-    // Obtener la métrica más reciente
+
     const latestMetric = await Metric.findOne({ serverId: server._id })
       .sort({ timestamp: -1 })
       .limit(1);
     
-    // Obtener alertas activas
     const activeAlerts = await Alert.find({
       serverId: server._id,
       resolved: false
@@ -94,7 +88,6 @@ exports.getServerById = async (req, res) => {
   }
 };
 
-// Actualizar un servidor
 exports.updateServer = async (req, res) => {
   try {
     const { name, ip, os, thresholds, isActive } = req.body;
@@ -105,13 +98,11 @@ exports.updateServer = async (req, res) => {
       return res.status(404).json({ message: 'Servidor no encontrado' });
     }
     
-    // Actualizar campos
     if (name) server.name = name;
     if (ip) server.ip = ip;
     if (os) server.os = os;
     if (isActive !== undefined) server.isActive = isActive;
     
-    // Actualizar umbrales
     if (thresholds) {
       if (thresholds.cpu !== undefined) server.thresholds.cpu = thresholds.cpu;
       if (thresholds.ram !== undefined) server.thresholds.ram = thresholds.ram;
@@ -137,7 +128,6 @@ exports.updateServer = async (req, res) => {
   }
 };
 
-// Regenerar API key
 exports.regenerateApiKey = async (req, res) => {
   try {
     const server = await Server.findById(req.params.id);
@@ -146,7 +136,6 @@ exports.regenerateApiKey = async (req, res) => {
       return res.status(404).json({ message: 'Servidor no encontrado' });
     }
     
-    // Generar nueva API key
     server.apiKey = crypto.randomBytes(32).toString('hex');
     
     await server.save();
@@ -160,7 +149,6 @@ exports.regenerateApiKey = async (req, res) => {
   }
 };
 
-// Eliminar un servidor
 exports.deleteServer = async (req, res) => {
   try {
     const server = await Server.findById(req.params.id);
@@ -168,12 +156,10 @@ exports.deleteServer = async (req, res) => {
     if (!server) {
       return res.status(404).json({ message: 'Servidor no encontrado' });
     }
-    
-    // Eliminar primero las métricas y alertas asociadas
+
     await Metric.deleteMany({ serverId: server._id });
     await Alert.deleteMany({ serverId: server._id });
     
-    // Luego eliminar el servidor
     await Server.findByIdAndDelete(req.params.id);
     
     res.json({ message: 'Servidor y todos sus datos relacionados eliminados correctamente' });
@@ -182,13 +168,11 @@ exports.deleteServer = async (req, res) => {
   }
 };
 
-// Verificar estado de servidores (usado por tarea programada)
 exports.checkServersStatus = async (req, res) => {
   try {
     const timeThreshold = new Date();
-    timeThreshold.setMinutes(timeThreshold.getMinutes() - 5); // 5 minutos sin actualización
+    timeThreshold.setMinutes(timeThreshold.getMinutes() - 5); 
     
-    // Buscar servidores activos sin actualización reciente
     const inactiveServers = await Server.find({
       isActive: true,
       status: { $ne: 'inactive' },
@@ -197,7 +181,6 @@ exports.checkServersStatus = async (req, res) => {
     
     const updatedServers = [];
     
-    // Marcar servidores como inactivos y crear alertas
     for (const server of inactiveServers) {
       const previousStatus = server.status;
       server.previousStatus = previousStatus;
@@ -205,8 +188,7 @@ exports.checkServersStatus = async (req, res) => {
       
       await server.save();
       updatedServers.push(server._id);
-      
-      // Crear alerta de servidor no disponible
+
       const alert = new Alert({
         serverId: server._id,
         type: 'unavailable',
@@ -227,10 +209,8 @@ exports.checkServersStatus = async (req, res) => {
   }
 };
 
-// Obtener estadísticas generales
 exports.getStats = async (req, res) => {
   try {
-    // Contar servidores por estado
     const serverCountsByStatus = await Server.aggregate([
       {
         $group: {
@@ -239,8 +219,7 @@ exports.getStats = async (req, res) => {
         }
       }
     ]);
-    
-    // Contar alertas activas por tipo
+
     const activeAlertsByType = await Alert.aggregate([
       {
         $match: { resolved: false }
@@ -252,8 +231,7 @@ exports.getStats = async (req, res) => {
         }
       }
     ]);
-    
-    // Contar alertas activas por severidad
+
     const activeAlertsBySeverity = await Alert.aggregate([
       {
         $match: { resolved: false }

@@ -1,11 +1,14 @@
 const nodemailer = require('nodemailer');
 
-// Configuración de nodemailer
+/**
+ * Email transporter configuration using Nodemailer.
+ * Uses Gmail as the service and authenticates with environment variables for security.
+ */
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Puedes cambiarlo por otro servicio si lo necesitas
+  service: 'gmail', 
   auth: {
-    user: process.env.EMAIL_USER,  // Tu correo electrónico
-    pass: process.env.EMAIL_PASS   // Tu contraseña (o una contraseña de aplicación si usas Gmail con 2FA)
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS   
   }
 });
 

@@ -12,7 +12,6 @@ const alertSchema = new mongoose.Schema({
   resolvedAt: { type: Date }
 });
 
-// Índice para consultas rápidas
 alertSchema.index({ serverId: 1, timestamp: -1, resolved: 1 });
 
 module.exports = mongoose.model('Alert', alertSchema);
